@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>贪吃蛇-小狮子</title>
+	<style>
+		*{
+			margin:0;
+			padding:0;
+		}
+		#score{
+			color:pink;
+			font-weight:bold;
+			font-size:18px;
+		}
+		#tips{
+			position:absolute;
+			left:480px;
+			top:2px;
+			z-index:20;
+		}
+	</style>
+</head>
+<body>
+
+	<script>
+
+		// 提示
+		function Tips(){
+
+			this.showTips = function(){
+
+				var tips = document.createElement('span');
+				tips.setAttribute('id', 'tips');
+				tips.appendChild(document.createTextNode('您的得分是:'));
+
+				var score = document.createElement('span');
+				score.setAttribute('id', 'score');
+				score.appendChild(document.createTextNode('0'));
+
+				tips.appendChild(score);
+				document.getElementsByTagName('body')[0].appendChild(tips);
+			}
+		}
+
+		// 地图
+		function Map(){
+
+			var width  = 599;
+			var height = 400;
+
+			this.showMap = function(){
+				
+				var map_div = document.createElement('div');
+
+				map_div.style.width  = width  + 'px';
+				map_div.style.height = height + 'px';
+				map_div.style.backgroundImage = "url('bg.jpg')";
+				map_div.style.opacity = '0.94'; // 设置背景图片透明度
+
+				document.getElementsByTagName('body')[0].appendChild(map_div);
+			}
+		}
+
+		// 食物
+		function Food(){
+
+			var width = height = 20;
+			var step  = 20; // 每个格子,食物的步值
+			var x_max = 30; // x轴最大的格子数 (地图的宽度/step) 
+			var y_max = 20; // y轴最大的格子数 (地图的高度/step)
+
+			this.x_food = 0;
+			this.y_food = 0; // 食物的初始坐标
+
+			this.food_div = null;
+
+			this.showFood = function(){
+
+				if(this.food_div === null){
+					
+					this.food_div = document.createElement('div');
+
+					this.food_div.style.width  = width  + 'px';
+					this.food_div.style.height = height + 'px';
+					this.food_div.style.background = 'blue';
+					this.food_div.style.position = 'absolute'; // 绝对定位
+
+					document.getElementsByTagName('body')[0].appendChild(this.food_div);
+				}
+				
+				// 随机在x轴和y轴出现的位置.
+				this.x_food = Math.floor(Math.random() * x_max) * step;
+				this.y_food = Math.floor(Math.random() * y_max) * step;
+				this.food_div.style.top  = this.y_food + 'px';
+				this.food_div.style.left = this.x_food + 'px';
+			}
+		}
+
+		// 小蛇
+		function Snake(){
+
+			var width = height = 19; // 蛇的大小
+			var step  = 20; // 步值
+			var x_max = 30; // x轴最大的格子数 (地图的宽度/step) 
+			var y_max = 20; // y轴最大的格子数 (地图的高度/step)
+
+			// 蛇节坐标
+			// X轴, Y轴, 颜色, 对象
+			this.snake_body = [
+				[1, 1, 'green' ,null],
+				[2, 1, 'green' ,null],
+				[3, 1, 'green' ,null],
+				[4, 1, 'red' ,null]
+			];
+
+			// 蛇节移动方向-默认向右
+			this.direction = 'right';
+
+			this.showSnake = function(){
+
+				// 蛇节长度
+				var len = this.snake_body.length;
+
+				for(var i=0; i<len; i++){
+
+					// 首次绘制小蛇时,需要创建蛇节对象;
+					// 小蛇移动时,无需再次创建蛇节,只需修改 top 和 left 的值即可.
+					if(this.snake_body[i][3] === null){
+
+						this.snake_body[i][3] = document.createElement('div');
+
+						this.snake_body[i][3].style.width  = width  + 'px';
+						this.snake_body[i][3].style.height = height + 'px';
+						this.snake_body[i][3].style.background = this.snake_body[i][2];
+						this.snake_body[i][3].style.position = 'absolute';
+
+						document.getElementsByTagName('body')[0].appendChild(this.snake_body[i][3]);
+					}
+
+					this.snake_body[i][3].style.top  = this.snake_body[i][1] * step + 'px';
+					this.snake_body[i][3].style.left = this.snake_body[i][0] * step + 'px';
+				}
+
+			}
+
+			// 小蛇移动
+			this.moveSnake = function(){
+
+				// 除去蛇头,蛇节的新坐标,等于上一个蛇节的旧坐标
+				var new_len = this.snake_body.length - 1; // 除去蛇头
+				for(var i=0; i<new_len; i++){
+					this.snake_body[i][0] = this.snake_body[i+1][0]; // 新的X轴坐标
+					this.snake_body[i][1] = this.snake_body[i+1][1]; // 新的Y轴坐标
+				}
+
+				// 计算蛇头坐标
+				switch(this.direction){
+					case 'right':
+						this.snake_body[new_len][0] += 1; // X轴+1
+						break;
+					case 'left':
+						this.snake_body[new_len][0] -= 1; // X轴-1
+						break;
+					case 'up':
+						this.snake_body[new_len][1] -= 1; // Y轴-1
+						break;
+					case 'down':
+						this.snake_body[new_len][1] += 1; // Y轴+1
+						break;
+				}
+
+				// 吃食物
+				// 获取蛇头坐标和食物坐标
+				var x_snake = this.snake_body[new_len][0] * step;
+				var y_snake = this.snake_body[new_len][1] * step;
+
+				// 判断蛇头坐标是否和食物坐标一致
+				if(x_snake == food.x_food && y_snake == food.y_food){
+					// 新的蛇尾坐标. 等于上一个蛇尾的旧坐标的值
+					var new_snake_node = [
+						this.snake_body[0][0],
+						this.snake_body[0][1],
+						'green',
+						null
+					];
+					this.snake_body.unshift(new_snake_node);
+
+					// 统计分数
+					var score = document.getElementById('score');
+					score.innerHTML = parseInt(score.innerHTML) + 5;
+					
+					food.showFood(); // 重新生成食物
+
+					// 游戏是否结束
+					if(score.innerHTML == 50){
+						alert('闯关成功');
+						clearInterval(timer);
+						if(confirm('是否重新开始?'))
+							window.location.reload();
+						return false;
+					}
+				}
+
+				// 判断蛇是否溢出边界
+				if(x_snake < 0 
+					|| x_snake > (x_max-1) * step 
+					|| y_snake < 0 
+					|| y_snake > (y_max-1) * step
+					){
+					alert('蛇撞墙挂了...');
+					clearInterval(timer);
+					return false;
+				}
+
+				// 判断蛇是否吃到自己
+				for(var i=0; i<new_len; i++){
+					// 如果蛇头坐标和任意蛇节坐标相等,表示吃到了自己
+					if(x_snake == this.snake_body[i][0] * step 
+						&& y_snake == this.snake_body[i][1] * step
+						){
+						alert('蛇吃到自己挂了...');
+						clearInterval(timer);
+						return false;
+					}
+				}
+
+				this.showSnake(); // 重新绘制小蛇的坐标
+			}
+
+		}
+
+		// 初始化
+		function init(){
+
+			var map = new Map();
+			map.showMap();
+
+			food = new Food();
+			food.showFood();
+
+			snake = new Snake();
+			snake.showSnake();
+
+			var tips = new Tips();
+			tips.showTips();
+
+			timer = setInterval("snake.moveSnake()", 300);
+
+			// 改变小蛇的移动方向
+			document.addEventListener('keydown', function(event){
+
+				var num = event.keyCode;
+
+				switch(num){
+					case 38: // 上
+						if(snake.direction != 'down')
+							snake.direction = 'up';
+						break;
+					case 40: // 下
+						if(snake.direction != 'up')
+							snake.direction = 'down';
+						break;
+					case 37: // 左
+						if(snake.direction != 'right')
+							snake.direction = 'left';
+						break;
+					case 39: // 右
+						if(snake.direction != 'left')
+							snake.direction = 'right';
+						break;
+				}
+			}, false);
+		}
+
+		window.onload = function(){
+			prompt('请输入您的大名,游戏马上开始~', 'snake');
+			init();
+		}
+	</script>
+</body>
+</html>
